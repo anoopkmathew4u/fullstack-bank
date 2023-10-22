@@ -1,69 +1,53 @@
 pipeline {
     agent any
-    
     tools{
-        jdk 'jdk17'
-        nodejs 'node16'
-        
+        nodejs 'nodejs16'
     }
-    
     environment{
         SCANNER_HOME= tool 'sonar-scanner'
     }
-    
+
     stages {
-        stage('Git Checkout') {
+        stage('Git_Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/jaiswaladi246/fullstack-bank.git'
+                git branch: 'main', url: 'https://github.com/anoopkmathew4u/fullstack-bank.git'
             }
         }
-        
         stage('OWASP FS SCAN') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./app/backend --disableYarnAudit --disableNodeAudit', odcInstallation: 'DC'
+                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
         
-        stage('TRIVY FS SCAN') {
+         stage('Trivy Scan') {
             steps {
                 sh "trivy fs ."
             }
         }
-        
-        stage('SONARQUBE ANALYSIS') {
+         stage('SonarQube') {
             steps {
                 withSonarQubeEnv('sonar') {
                     sh " $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Bank -Dsonar.projectKey=Bank "
-                }
+               }
             }
         }
-        
-        
-         stage('Install Dependencies') {
+       stage('Backend') {
             steps {
-                sh "npm install"
-            }
-        }
-        
-        stage('Backend') {
-            steps {
-                dir('/root/.jenkins/workspace/Bank/app/backend') {
+                sh "cd /var/lib/jenkins/workspace/Bank-App/app/frontend"
                     sh "npm install"
                 }
-            }
         }
         
         stage('frontend') {
             steps {
-                dir('/root/.jenkins/workspace/Bank/app/frontend') {
+                   sh "cd /var/lib/jenkins/workspace/Bank-App/app/backend"
                     sh "npm install"
                 }
-            }
         }
-        
         stage('Deploy to Conatiner') {
             steps {
+                sh "cd /var/lib/jenkins/workspace/Bank-App/app"
                 sh "npm run compose:up -d"
             }
         }
